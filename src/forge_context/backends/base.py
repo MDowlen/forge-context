@@ -14,3 +14,6 @@ class VectorBackend(ABC):
 
     @abstractmethod
     def count(self) -> int: ...
+
+    @abstractmethod
+    def all(self) -> list[IndexedChunk]: ...
