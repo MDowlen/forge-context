@@ -14,6 +14,10 @@ class SourceRef(BaseModel):
     language: str | None = None
     content_sha256: str
 
+    @property
+    def pointer(self) -> str:
+        return f"{self.path}:{self.start_line}-{self.end_line}"
+
 
 class ContextChunk(BaseModel):
     id: str
@@ -41,6 +45,10 @@ class SyncReport(BaseModel):
     chunks_indexed: int
     skipped_files: int
     languages: dict[str, int]
+    added_files: int = 0
+    changed_files: int = 0
+    unchanged_files: int = 0
+    deleted_files: int = 0
 
 
 class AnswerBundle(BaseModel):
@@ -50,6 +58,65 @@ class AnswerBundle(BaseModel):
     @property
     def evidence(self) -> list[SourceRef]:
         return [hit.chunk.source for hit in self.hits]
+
+
+class Citation(BaseModel):
+    path: str
+    start_line: int
+    end_line: int
+    symbol: str | None = None
+    score: float
+
+    @property
+    def pointer(self) -> str:
+        return f"{self.path}:{self.start_line}-{self.end_line}"
+
+
+class GroundedAnswer(BaseModel):
+    question: str
+    answer: str
+    citations: list[Citation]
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
+class DependencyEdge(BaseModel):
+    source: str
+    target: str
+    import_name: str
+    resolved: bool = True
+
+
+class ImpactedFile(BaseModel):
+    path: str
+    depth: int = Field(ge=0)
+    reason: str
+
+
+class ImpactReport(BaseModel):
+    changed_files: list[str]
+    impacted_files: list[ImpactedFile]
+    edges_considered: int
+
+
+class EvalCase(BaseModel):
+    question: str
+    expected_paths: list[str] = Field(default_factory=list)
+    expected_symbols: list[str] = Field(default_factory=list)
+
+
+class EvalCaseResult(BaseModel):
+    question: str
+    passed: bool
+    reciprocal_rank: float = Field(ge=0.0, le=1.0)
+    matched_path: str | None = None
+    matched_symbol: str | None = None
+
+
+class EvalReport(BaseModel):
+    cases: int
+    hit_rate_at_k: float = Field(ge=0.0, le=1.0)
+    mean_reciprocal_rank: float = Field(ge=0.0, le=1.0)
+    results: list[EvalCaseResult]
 
 
 def relative_path(path: Path, root: Path) -> str:
