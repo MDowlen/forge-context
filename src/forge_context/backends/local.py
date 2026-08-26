@@ -41,3 +41,6 @@ class LocalJsonBackend(VectorBackend):
 
     def count(self) -> int:
         return len(self._items)
+
+    def all(self) -> list[IndexedChunk]:
+        return list(self._items)
