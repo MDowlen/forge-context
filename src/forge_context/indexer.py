@@ -89,7 +89,7 @@ class RepositoryIndexer:
             files_indexed += 1
             texts = [chunk.text for chunk in chunks]
             vectors = self.embedder.embed_many(texts)
-            for chunk, vector in zip(chunks, vectors):
+            for chunk, vector in zip(chunks, vectors, strict=True):
                 language = chunk.source.language or chunk.kind
                 languages[language] += 1
                 new_chunks.append(IndexedChunk(**chunk.model_dump(), vector=vector))
