@@ -9,7 +9,7 @@ from .base import VectorBackend
 
 
 def cosine(a: list[float], b: list[float]) -> float:
-    return sum(x * y for x, y in zip(a, b)) / (
+    return sum(x * y for x, y in zip(a, b, strict=True)) / (
         (math.sqrt(sum(x * x for x in a)) or 1.0) * (math.sqrt(sum(y * y for y in b)) or 1.0)
     )
 
