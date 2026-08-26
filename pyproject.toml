@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "forge-context"
+version = "0.1.0"
+description = "Grounded developer context infrastructure for AI engineering workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.8,<3",
+  "typer>=0.12,<1",
+  "rich>=13.7,<15",
+  "qdrant-client>=1.12,<2",
+  "tree-sitter>=0.23,<1",
+  "tree-sitter-language-pack>=0.4,<1",
+]
+
+[project.optional-dependencies]
+local-embeddings = ["sentence-transformers>=3.2,<4"]
+dev = ["pytest>=8.3,<9", "ruff>=0.8,<1"]
+
+[project.scripts]
+dev-ai = "forge_context.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forge_context"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
