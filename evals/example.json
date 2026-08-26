@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "question": "Where is repository indexing implemented?",
+      "expected_paths": ["src/forge_context/indexer.py"],
+      "expected_symbols": ["RepositoryIndexer"]
+    },
+    {
+      "question": "Where is hybrid retrieval scoring implemented?",
+      "expected_paths": ["src/forge_context/retrieval.py"]
+    },
+    {
+      "question": "Where is Tree-sitter symbol extraction handled?",
+      "expected_paths": ["src/forge_context/parser.py"],
+      "expected_symbols": ["extract_symbols"]
+    }
+  ]
+}
