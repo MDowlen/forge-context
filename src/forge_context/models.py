@@ -79,6 +79,20 @@ class GroundedAnswer(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
 
 
+class QueryPlan(BaseModel):
+    original: str
+    subqueries: list[str]
+    tokens: list[str] = Field(default_factory=list)
+
+
+class DecisionRecord(BaseModel):
+    source: Literal["git", "adr"]
+    title: str
+    reference: str
+    summary: str = ""
+    timestamp: str | None = None
+
+
 class DependencyEdge(BaseModel):
     source: str
     target: str
@@ -96,6 +110,21 @@ class ImpactReport(BaseModel):
     changed_files: list[str]
     impacted_files: list[ImpactedFile]
     edges_considered: int
+
+
+class ContextPack(BaseModel):
+    question: str
+    plan: QueryPlan
+    answer: GroundedAnswer
+    decisions: list[DecisionRecord] = Field(default_factory=list)
+    impact: ImpactReport | None = None
+
+
+class EvidenceIntegrityReport(BaseModel):
+    citations: int
+    unique_sources: int
+    valid_pointers: int
+    evidence_integrity: float = Field(ge=0.0, le=1.0)
 
 
 class EvalCase(BaseModel):
