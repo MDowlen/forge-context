@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .models import EvalCase, EvalCaseResult, EvalReport
+from .models import EvidenceIntegrityReport, EvalCase, EvalCaseResult, EvalReport, GroundedAnswer
 from .retrieval import Retriever
 
 
@@ -51,4 +51,34 @@ def evaluate_retrieval(retriever: Retriever, cases: list[EvalCase], k: int = 5) 
         hit_rate_at_k=(hits / count) if count else 0.0,
         mean_reciprocal_rank=(sum(reciprocal_ranks) / count) if count else 0.0,
         results=results,
+    )
+
+
+def evaluate_evidence_integrity(root: Path, answer: GroundedAnswer) -> EvidenceIntegrityReport:
+    """Verify that cited source pointers resolve to real local files and valid line ranges."""
+    root = root.resolve()
+    valid = 0
+    unique_sources = {citation.path for citation in answer.citations}
+    for citation in answer.citations:
+        path = (root / citation.path).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError:
+            continue
+        if not path.is_file():
+            continue
+        try:
+            line_count = len(path.read_text(encoding="utf-8", errors="replace").splitlines())
+        except OSError:
+            continue
+        if 1 <= citation.start_line <= citation.end_line <= max(line_count, 1):
+            valid += 1
+
+    count = len(answer.citations)
+    score = valid / count if count else 0.0
+    return EvidenceIntegrityReport(
+        citations=count,
+        unique_sources=len(unique_sources),
+        valid_pointers=valid,
+        evidence_integrity=score,
     )
