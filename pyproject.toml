@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "forge-context"
-version = "0.2.0"
+version = "0.3.0"
 description = "Grounded developer context infrastructure for AI engineering workflows"
 readme = "README.md"
 requires-python = ">=3.11"
