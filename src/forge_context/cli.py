@@ -13,6 +13,7 @@ from .evaluation import evaluate_retrieval, load_eval_cases
 from .factory import make_backend, make_embedder
 from .indexer import RepositoryIndexer
 from .retrieval import Retriever
+from .service import ContextEngine
 
 app = typer.Typer(help="ForgeContext grounded developer context CLI")
 context_app = typer.Typer(help="Repository context operations")
@@ -85,6 +86,24 @@ def ask(
     for citation in grounded.citations:
         table.add_row(f"{citation.score:.3f}", citation.pointer, citation.symbol or "—")
     console.print(table)
+
+
+@app.command("context-pack")
+def context_pack(
+    question: str,
+    path: Path = typer.Option(Path("."), exists=True, file_okay=False),
+    changed: list[str] | None = typer.Option(None, "--changed", help="Changed repository path; repeatable."),
+    limit: int = typer.Option(6, min=1, max=20),
+) -> None:
+    """Build a ForgePR-ready package of evidence, decisions, and optional impact context."""
+    _, backend, embedder = _services()
+    pack = ContextEngine(backend, embedder).context_pack(
+        path,
+        question,
+        changed_files=changed,
+        limit=limit,
+    )
+    console.print_json(json.dumps(pack.model_dump(mode="json")))
 
 
 @app.command("explain")
