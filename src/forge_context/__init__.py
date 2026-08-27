@@ -1,3 +1,6 @@
 """ForgeContext developer context engine."""
 
-__version__ = "0.1.0"
+from .service import ContextEngine
+
+__all__ = ["ContextEngine"]
+__version__ = "0.3.0"
