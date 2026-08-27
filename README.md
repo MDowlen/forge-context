@@ -4,7 +4,7 @@
 
 ForgeContext turns a source repository into an evidence-backed context layer that developer agents, PR reviewers, CI quality gates, and incident-response systems can reuse. The project is deliberately built as a Python library + CLI first; hosted APIs and dashboards can consume the same core later without coupling the intelligence layer to a web framework.
 
-## Phase 2 capabilities
+## Phase 3 capabilities
 
 - Tree-sitter code parsing with symbol-aware chunks
 - exact provenance: file, line range, symbol, language, SHA-256
@@ -15,10 +15,15 @@ ForgeContext turns a source repository into an evidence-backed context layer tha
   - OpenAI semantic embeddings
 - local persistent vector index or Qdrant
 - hybrid semantic + lexical retrieval
+- compound-query decomposition and evidence-diversity reranking
 - structured grounded answers with citations and confidence
+- ADR discovery plus recent Git decision/history context
 - local import dependency graph for Python, JavaScript/TypeScript, and Java
 - Git-diff-aware reverse impact analysis
 - labeled retrieval evaluation with Hit@K and Mean Reciprocal Rank
+- evidence-integrity checks for citation file/line pointers
+- `ContextEngine` public API for downstream agent workflows
+- ForgePR-ready structured `ContextPack`
 - GitHub Actions CI across Python 3.11–3.13
 
 ## Quick start
@@ -32,7 +37,34 @@ dev-ai context sync .
 dev-ai context status
 dev-ai ask "Where is retrieval scoring implemented?"
 dev-ai impact . --changed src/forge_context/retrieval.py
+dev-ai context-pack "What changed and what architecture decisions matter?" \
+  --changed src/forge_context/retrieval.py
 dev-ai eval run evals/example.json
+```
+
+### ForgePR-ready Python API
+
+```python
+from pathlib import Path
+
+from forge_context import ContextEngine
+from forge_context.config import Settings
+from forge_context.factory import make_backend, make_embedder
+
+settings = Settings.from_env()
+embedder = make_embedder(settings)
+backend = make_backend(settings, dimensions=embedder.dimensions)
+engine = ContextEngine(backend, embedder)
+
+pack = engine.context_pack(
+    Path("."),
+    "What behavior changed and what could it affect?",
+    changed_files=["src/forge_context/retrieval.py"],
+)
+
+print(pack.answer)
+print(pack.decisions)
+print(pack.impact)
 ```
 
 ### Real local semantic embeddings
@@ -65,6 +97,8 @@ Repository
    ├── scanner ── excludes generated/vendor content
    ├── Tree-sitter parser ── symbols + code-aware chunks
    ├── manifest ── only changed files are re-embedded
+   ├── ADR/Git history ── decision context
+   └── dependency graph ── reverse impact context
    │
    ▼
 Embedding provider
@@ -78,11 +112,18 @@ Vector backend
    └── Qdrant
    │
    ▼
-Hybrid Retriever ── vector similarity + lexical/path/symbol score
+Query planner + Hybrid Retriever
+   ├── vector similarity
+   ├── lexical/path/symbol score
+   ├── query decomposition
+   └── diversity reranking
    │
+   ▼
+ContextEngine
    ├── GroundedAnswer + exact citations
+   ├── decision history
    ├── dependency-aware impact analysis
-   └── retrieval evaluation harness
+   └── structured ContextPack for agents
 ```
 
 ## Why the context engine is independent from the agent framework
@@ -96,7 +137,7 @@ ForgeContext does not require LangChain, LangGraph, CrewAI, or another orchestra
 - **Hit@K** — whether an expected source appears in the top K results
 - **MRR** — how highly the first correct result was ranked
 
-This creates a regression test for retrieval changes instead of relying on subjective prompt demos.
+Phase 3 also adds evidence-integrity verification for citation pointers so downstream automation can check that cited files and line ranges actually exist before acting on a result.
 
 ## Development
 
@@ -106,15 +147,9 @@ ruff check src tests
 pytest -q
 ```
 
-## Roadmap
+## Next: ForgePR
 
-- richer AST dependency/call graph
-- GitHub PR context ingestion and ADR/decision history
-- reranking and query decomposition
-- generated-answer groundedness evaluation
-- LangGraph PR quality/test agents
-- GitHub Action quality gate
-- operational incident context ingestion
+ForgeContext v0.3 is the reusable context foundation for the flagship PR validator. The next repository consumes `ContextPack` inside a LangGraph workflow for diff analysis, grounded quality/safety review, test generation, isolated test execution, and a deterministic CI decision gate.
 
 ## License
 
