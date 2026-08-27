@@ -5,7 +5,7 @@ import re
 from .backends.base import VectorBackend
 from .embeddings import EmbeddingProvider
 from .models import AnswerBundle, Citation, ContextChunk, GroundedAnswer, RetrievalHit
-
+from .query import plan_query, rerank_diverse
 
 TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_./:-]*")
 
@@ -27,7 +27,7 @@ class Retriever:
         self.backend = backend
         self.embedder = embedder
 
-    def ask(self, question: str, limit: int = 6) -> AnswerBundle:
+    def _retrieve_one(self, question: str, limit: int) -> list[RetrievalHit]:
         vector = self.embedder.embed(question)
         candidates = self.backend.search(vector, limit=max(limit * 3, 12))
         hits: list[RetrievalHit] = []
@@ -42,8 +42,19 @@ class Retriever:
                     final_score=final,
                 )
             )
-        hits.sort(key=lambda hit: hit.final_score, reverse=True)
-        return AnswerBundle(question=question, hits=hits[:limit])
+        return hits
+
+    def ask(self, question: str, limit: int = 6) -> AnswerBundle:
+        plan = plan_query(question)
+        best_by_chunk: dict[str, RetrievalHit] = {}
+        for subquery in plan.subqueries:
+            for hit in self._retrieve_one(subquery, limit=max(limit, 6)):
+                existing = best_by_chunk.get(hit.chunk.id)
+                if existing is None or hit.final_score > existing.final_score:
+                    best_by_chunk[hit.chunk.id] = hit
+
+        hits = sorted(best_by_chunk.values(), key=lambda hit: hit.final_score, reverse=True)
+        return AnswerBundle(question=question, hits=rerank_diverse(hits, limit=limit))
 
     def grounded_answer(self, question: str, limit: int = 6) -> GroundedAnswer:
         bundle = self.ask(question, limit=limit)
